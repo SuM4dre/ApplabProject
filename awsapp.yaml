@@ -1,111 +1,107 @@
-### Template for app on app inventor and cloud formation########## 
+### Template for AWS Services 
+S3 Bucket: Almacena el sitio web estático.
 
-AWSTemplateFormatVersion: '2024-10-19'
-Description: Infraestructura básica en AWS para una aplicación móvil
+CloudFront Distribution: Distribuye el contenido de S3.
+
+DynamoDB Table: Almacena la información de productos.
+
+Lambda Function: Procesa solicitudes y consulta DynamoDB.
+
+API Gateway: Gestiona las solicitudes HTTP/HTTPS.
+
+Permissions: Configura los permisos necesarios para que API Gateway invoque la función Lambda.
+
+########## 
+
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Plantilla para la configuración de los servicios y recursos (S3, CloudFront, API Gateway, Lambda, DynamoDB)
+
 Resources:
-  S3Bucket:
+  MyS3Bucket:
     Type: 'AWS::S3::Bucket'
     Properties:
-      BucketName: 'app-storage-bucket'
-  
-  CognitoUserPool:
-    Type: 'AWS::Cognito::UserPool'
-    Properties:
-      UserPoolName: 'AppUserPool'
-  
-  CognitoUserPoolClient:
-    Type: 'AWS::Cognito::UserPoolClient'
-    Properties:
-      ClientName: 'AppClient'
-      UserPoolId:
-        Ref: 'CognitoUserPool'
-  
-  DynamoDBTable:
-    Type: 'AWS::DynamoDB::Table'
-    Properties:
-      TableName: 'AppUserData'
-      AttributeDefinitions:
-        - AttributeName: 'UserId'
-          AttributeType: 'S'
-      KeySchema:
-        - AttributeName: 'UserId'
-          KeyType: 'HASH'
-      ProvisionedThroughput:
-        ReadCapacityUnits: 5
-        WriteCapacityUnits: 5
-  
-  APIGateway:
-    Type: 'AWS::ApiGateway::RestApi'
-    Properties:
-      Name: 'AppApi'
-  
-  LambdaFunction:
-    Type: 'AWS::Lambda::Function'
-    Properties:
-      FunctionName: 'AppFunction'
-      Handler: 'index.handler'
-      Role: 'arn:aws:iam::<ACCOUNT_ID>:role/execution_role'
-      Code:
-        S3Bucket: 'app-storage-bucket'
-        S3Key: 'function-code.zip'
-      Runtime: 'nodejs14.x'
-  
-  LambdaPermission:
-    Type: 'AWS::Lambda::Permission'
-    Properties:
-      Action: 'lambda:InvokeFunction'
-      FunctionName:
-        Ref: 'LambdaFunction'
-      Principal: 'apigateway.amazonaws.com'
-  
-  APIGatewayResource:
-    Type: 'AWS::ApiGateway::Resource'
-    Properties:
-      ParentId:
-        Fn::GetAtt:
-          - 'APIGateway'
-          - 'RootResourceId'
-      PathPart: 'resource'
-      RestApiId:
-        Ref: 'APIGateway'
-  
-  APIGatewayMethod:
-    Type: 'AWS::ApiGateway::Method'
-    Properties:
-      AuthorizationType: 'NONE'
-      HttpMethod: 'POST'
-      ResourceId:
-        Ref: 'APIGatewayResource'
-      RestApiId:
-        Ref: 'APIGateway'
-      Integration:
-        IntegrationHttpMethod: 'POST'
-        Type: 'AWS_PROXY'
-        Uri:
-          Fn::Sub:
-            - arn:aws:apigateway:${Region}:lambda:path/2015-03-31/functions/${LambdaFunctionArn}/invocations
-            - LambdaFunctionArn:
-                Fn::GetAtt:
-                  - LambdaFunction
-                  - Arn
-  
-  CloudFrontDistribution:
+      BucketName: 'my-website-bucket'
+      AccessControl: PublicRead
+      WebsiteConfiguration:
+        IndexDocument: 'index.html'
+        ErrorDocument: 'error.html'
+
+  MyCloudFrontDistribution:
     Type: 'AWS::CloudFront::Distribution'
     Properties:
       DistributionConfig:
         Origins:
-          - DomainName:
-              Fn::GetAtt:
-                - S3Bucket
-                - DomainName
+          - DomainName: !GetAtt MyS3Bucket.DomainName
             Id: 'S3Origin'
             S3OriginConfig: {}
         Enabled: true
         DefaultCacheBehavior:
-          AllowedMethods:
-            - GET
-            - HEAD
           TargetOriginId: 'S3Origin'
           ViewerProtocolPolicy: 'redirect-to-https'
+          AllowedMethods: ['GET', 'HEAD']
         ViewerCertificate:
           CloudFrontDefaultCertificate: true
+
+  MyDynamoDBTable:
+    Type: 'AWS::DynamoDB::Table'
+    Properties:
+      TableName: 'Productos'
+      AttributeDefinitions:
+        - AttributeName: 'ProductID'
+          AttributeType: 'S'
+      KeySchema:
+        - AttributeName: 'ProductID'
+          KeyType: 'HASH'
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
+
+  MyLambdaFunction:
+    Type: 'AWS::Lambda::Function'
+    Properties:
+      FunctionName: 'ProductQueryFunction'
+      Handler: 'index.handler'
+      Role: 'arn:aws:iam::<ACCOUNT_ID>:role/execution_role'
+      Code:
+        S3Bucket: 'my-lambda-functions'
+        S3Key: 'product-query.zip'
+      Runtime: 'python3.8'
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref MyDynamoDBTable
+
+  MyApiGateway:
+    Type: 'AWS::ApiGateway::RestApi'
+    Properties:
+      Name: 'ProductApi'
+      Description: 'API Gateway for querying product information'
+
+  MyApiGatewayResource:
+    Type: 'AWS::ApiGateway::Resource'
+    Properties:
+      ParentId:
+        Fn::GetAtt:
+          - MyApiGateway
+          - 'RootResourceId'
+      PathPart: 'products'
+      RestApiId: !Ref MyApiGateway
+
+  MyApiGatewayMethod:
+    Type: 'AWS::ApiGateway::Method'
+    Properties:
+      AuthorizationType: 'NONE'
+      HttpMethod: 'GET'
+      ResourceId: !Ref MyApiGatewayResource
+      RestApiId: !Ref MyApiGateway
+      Integration:
+        IntegrationHttpMethod: 'POST'
+        Type: 'AWS_PROXY'
+        Uri:
+          Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${MyLambdaFunction.Arn}/invocations
+
+  MyLambdaPermission:
+    Type: 'AWS::Lambda::Permission'
+    Properties:
+      Action: 'lambda:InvokeFunction'
+      FunctionName: !Ref MyLambdaFunction
+      Principal: 'apigateway.amazonaws.com'
