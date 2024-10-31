@@ -1,10 +1,18 @@
+####### se replantea proyecto y arcquitectura 
+VPC: Crea una VPC con soporte DNS.
+Internet Gateway: Proporciona una puerta de enlace para acceso a Internet.
+Subredes: Define una subred pública y una privada.
+Tabla de Rutas: Crea y asocia tablas de rutas para las subredes.
+Esta configuración proporciona una infraestructura de red básica, con subredes públicas y privadas, y conectividad a Internet.
+########  
+
 AWSTemplateFormatVersion: '2010-09-09'
-Description: Infraestructura de red básica en AWS
+Description: Plantilla para la configuración de la red (VPC, Subredes, Internet Gateway)
 
 Resources:
   MyVPC:
     Type: 'AWS::EC2::VPC'
-    Properties: 
+    Properties:
       CidrBlock: '10.0.0.0/16'
       EnableDnsSupport: true
       EnableDnsHostnames: true
@@ -14,18 +22,18 @@ Resources:
 
   MyInternetGateway:
     Type: 'AWS::EC2::InternetGateway'
-    Properties: 
+    Properties:
       Tags:
         - Key: Name
           Value: 'MyInternetGateway'
 
   AttachGateway:
     Type: 'AWS::EC2::VPCGatewayAttachment'
-    Properties: 
+    Properties:
       VpcId: !Ref MyVPC
       InternetGatewayId: !Ref MyInternetGateway
 
-  MyPublicSubnet1:
+  MyPublicSubnet:
     Type: 'AWS::EC2::Subnet'
     Properties:
       VpcId: !Ref MyVPC
@@ -34,74 +42,49 @@ Resources:
       AvailabilityZone: 'us-west-2a'
       Tags:
         - Key: Name
-          Value: 'MyPublicSubnet1'
+          Value: 'MyPublicSubnet'
 
-  MyPublicSubnet2:
+  MyPrivateSubnet:
     Type: 'AWS::EC2::Subnet'
     Properties:
       VpcId: !Ref MyVPC
       CidrBlock: '10.0.2.0/24'
-      MapPublicIpOnLaunch: true
-      AvailabilityZone: 'us-west-2b'
-      Tags:
-        - Key: Name
-          Value: 'MyPublicSubnet2'
-
-  MyPrivateSubnet1:
-    Type: 'AWS::EC2::Subnet'
-    Properties:
-      VpcId: !Ref MyVPC
-      CidrBlock: '10.0.3.0/24'
       AvailabilityZone: 'us-west-2a'
       Tags:
         - Key: Name
-          Value: 'MyPrivateSubnet1'
+          Value: 'MyPrivateSubnet'
 
-  MyPrivateSubnet2:
-    Type: 'AWS::EC2::Subnet'
-    Properties:
-      VpcId: !Ref MyVPC
-      CidrBlock: '10.0.4.0/24'
-      AvailabilityZone: 'us-west-2b'
-      Tags:
-        - Key: Name
-          Value: 'MyPrivateSubnet2'
-
-  MyRouteTable:
+  MyRouteTablePublic:
     Type: 'AWS::EC2::RouteTable'
     Properties:
       VpcId: !Ref MyVPC
       Tags:
         - Key: Name
-          Value: 'MyRouteTable'
+          Value: 'MyPublicRouteTable'
 
-  MyRoute:
+  MyPublicRoute:
     Type: 'AWS::EC2::Route'
     Properties:
-      RouteTableId: !Ref MyRouteTable
+      RouteTableId: !Ref MyRouteTablePublic
       DestinationCidrBlock: '0.0.0.0/0'
       GatewayId: !Ref MyInternetGateway
 
-  MySubnetRouteTableAssociation1:
+  MySubnetRouteTableAssociationPublic:
     Type: 'AWS::EC2::SubnetRouteTableAssociation'
     Properties:
-      SubnetId: !Ref MyPublicSubnet1
-      RouteTableId: !Ref MyRouteTable
+      SubnetId: !Ref MyPublicSubnet
+      RouteTableId: !Ref MyRouteTablePublic
 
-  MySubnetRouteTableAssociation2:
+  MyRouteTablePrivate:
+    Type: 'AWS::EC2::RouteTable'
+    Properties:
+      VpcId: !Ref MyVPC
+      Tags:
+        - Key: Name
+          Value: 'MyPrivateRouteTable'
+
+  MySubnetRouteTableAssociationPrivate:
     Type: 'AWS::EC2::SubnetRouteTableAssociation'
     Properties:
-      SubnetId: !Ref MyPublicSubnet2
-      RouteTableId: !Ref MyRouteTable
-
-####### Descripción de los Componentes
-MyVPC: Define una nueva VPC con soporte DNS habilitado.
-MyInternetGateway: Crea una Gateway de Internet para la VPC.
-AttachGateway: Asocia la Internet Gateway a la VPC.
-MyPublicSubnets: Define subredes públicas en distintas zonas de disponibilidad.
-MyPrivateSubnets: Define subredes privadas en distintas zonas de disponibilidad.
-MyRouteTable: Crea una tabla de rutas para la VPC.
-MyRoute: Añade una ruta en la tabla de rutas que dirige el tráfico a través de la Internet Gateway.
-MySubnetRouteTableAssociations: Asocia las subredes públicas a la tabla de rutas.
-Esta configuración proporciona una infraestructura de red básica, con subredes públicas y privadas, y conectividad a Internet.
-########  
+      SubnetId: !Ref MyPrivateSubnet
+      RouteTableId: !Ref MyRouteTablePrivate
