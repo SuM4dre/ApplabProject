@@ -1,18 +1,87 @@
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Harinas y Semillas el buen sabor</title>
+    <style>
+        body {
+            background-color: #2fe60152;
+            color: white;
+            font-family: Arial, sans-serif;
+            text-align: center;
+            padding-top: 50px;
+        }
+        .search-container {
+            margin-top: 20px;
+        }
+        input[type="text"] {
+            padding: 10px;
+            width: 300px;
+            border: none;
+            border-radius: 5px;
+        }
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            background-color: white;
+            color: #2fe60152;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #e0e0e0;
+        }
+    </style>
+</head>
+<body>
+    <h1>Harinas y Semillas el buen sabor</h1>
+    <div class="search-container">
+        <input type="text" id="search" placeholder="Buscar productos...">
+        <button onclick="searchProduct()">Buscar</button>
+    </div>
+
+    <script>
+        function searchProduct() {
+            const query = document.getElementById('search').value;
+            console.log(`Buscando productos relacionados con: ${query}`);
+
+            // Ejemplo de llamada a una API en AWS
+            fetch('https://tu-api-en-aws.com/buscar?query=' + query)
+                .then(response => response.json())
+                .then(data => {
+                    console.log(data);
+                    // Aquí puedes procesar y mostrar los resultados en tu página web
+                })
+                .catch(error => console.error('Error:', error));
+        }
+    </script>
+</body>
+</html>
+
+
+
+
+
+
+
+
+
 AWSTemplateFormatVersion: '2010-09-09'
 
-Description:
-  Template to create the S3 bucket,CloudFront DynamoDb, ApiGateway and Lambda for the Application layer
+Description: Template to create the S3 bucket, CloudFront, DynamoDB, ApiGateway, and Lambda for the Application layer.
 
 Parameters:
-  S3BucketName:
-    Description: "Nombre del bucket S3 para el sitio web"
-    Type: String
-    Default: "harinas-semillas-buen-sabor"
+  VpcId:
+    Description: "VPC ID"
+    Type: AWS::EC2::VPC::Id
 
-  DynamoDBName:
-    Description: "Nombre de la tabla DynamoDB para la tienda de libros"
-    Type: String
-    Default: "Productos"
+  PublicSubnetId:
+    Description: "Public Subnet ID"
+    Type: AWS::EC2::Subnet::Id
+
+  PrivateSubnetId:
+    Description: "Private Subnet ID"
+    Type: AWS::EC2::Subnet::Id
 
 Resources:
 
@@ -23,52 +92,39 @@ Resources:
       BucketName: 'harinas-semillas-buen-sabor'
       AccessControl: PublicRead
       Tags:
-        - Key: "Name"
-          Value: !Ref 'WebsiteBucket'
-  
-  WebsiteBucketPolicy:
-    Type: 'AWS::S3::BucketPolicy'
-    Properties:
-    Bucket: !Ref WebsiteBucket
-    PolicyDocument:
-      Version: '2012-10-17'
-      Statement:
-        - Sid: PublicReadGetObject
-          Effect: Allow
-          Principal: "*"
-          Action: 's3:GetObject'
-          Resource: !Sub 'arn:aws:s3:::${WebsiteBucket}/*'
- 
-  # Bucket para registros
-  LoggingBucket:
-    Type: 'AWS::S3::Bucket'
-    Properties:
-      BucketName: 'tu-nombre-de-bucket-de-registros'
-      AccessControl: LogDeliveryWrite
-      VersioningConfiguration:
-        Status: Enabled
+        - Key: 'Name'
+          Value: 'WebsiteBucket'
 
   # CloudFront Distribution
   CloudFrontDistribution:
     Type: 'AWS::CloudFront::Distribution'
     Properties:
-    DistributionConfig:
-      Enabled: true
-      Origins:
-        - DomainName: !GetAtt WebsiteBucket.DomainName
-          Id: S3Origin
-          S3OriginConfig: {}
-      DefaultCacheBehavior:
-        TargetOriginId: S3Origin
-        ViewerProtocolPolicy: redirect-to-https
-        ForwardedValues:
-          QueryString: false
-          Cookies:
-            Forward: none
-      Logging:
-        IncludeCookies: false
-        Bucket: !Ref 'LoggingBucket'  # Debes crear un bucket de registro aparte
-        Prefix: 'cloudfront-logs/'
+      DistributionConfig:
+        Enabled: true
+        Origins:
+          - DomainName: !GetAtt WebsiteBucket.DomainName
+            Id: S3Origin
+            S3OriginConfig: {}
+        DefaultCacheBehavior:
+          TargetOriginId: S3Origin
+          ViewerProtocolPolicy: redirect-to-https
+          ForwardedValues:
+            QueryString: false
+            Cookies:
+              Forward: none
+        Logging:
+          IncludeCookies: false
+          Bucket: !Ref LoggingBucket
+          Prefix: 'cloudfront-logs/'
+
+  # Logging Bucket
+  LoggingBucket:
+    Type: 'AWS::S3::Bucket'
+    Properties:
+      BucketName: 'your-logging-bucket-name'
+      AccessControl: LogDeliveryWrite
+      VersioningConfiguration:
+        Status: Enabled
 
   # DynamoDB Table
   ProductsTable:
@@ -85,8 +141,8 @@ Resources:
         ReadCapacityUnits: 5
         WriteCapacityUnits: 5
       Tags:
-        - Key: "Name"
-          Value: !Ref 'ProductsTable'
+        - Key: 'Name'
+          Value: 'ProductsTable'
 
   # Lambda Execution Role
   LambdaExecutionRole:
@@ -110,7 +166,7 @@ Resources:
                   - dynamodb:Scan
                   - dynamodb:GetItem
                   - dynamodb:PutItem
-                Resource: "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${DynamoDBName}"
+                Resource: !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/Productos"
 
   # Lambda Function
   SearchProductFunction:
@@ -141,11 +197,11 @@ Resources:
                   'statusCode': 200,
                   'body': json.dumps(item)
               }
-     VpcConfig:
-       SubnetIds: 
-         - !Ref PrivateSubnetId
-       SecurityGroupIds:
-         - !Ref LambdaSecurityGroup     
+      VpcConfig:
+        SubnetIds:
+          - !Ref PrivateSubnetId
+        SecurityGroupIds:
+          - !Ref LambdaSecurityGroup
 
   # Lambda Security Group
   LambdaSecurityGroup:
@@ -157,8 +213,8 @@ Resources:
         - IpProtocol: -1
           FromPort: -1
           ToPort: -1
-          CidrIp: 0.0.0.0/0    
-
+          CidrIp: 0.0.0.0/0
+  
   # API Gateway
   ApiGateway:
     Type: 'AWS::ApiGateway::RestApi'
@@ -196,3 +252,4 @@ Resources:
       Principal: 'apigateway.amazonaws.com'
       SourceArn: 
         Fn::Sub: 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiGateway}/*/GET/buscar-productos'
+

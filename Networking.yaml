@@ -1,7 +1,7 @@
 AWSTemplateFormatVersion: '2010-09-09'
 
 Description:
-  Infrastructure high availability and of a web server
+  Infrastructure high availability 
 
 Parameters:
   VpcCIDR:
