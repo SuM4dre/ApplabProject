@@ -19,9 +19,9 @@ Parameters:
     Description: CIDR of private subnet A
     Default: 172.16.2.0/24
 
- Resources:
+Resources:
 
-#Configure a VPC
+  #Configure a VPC
   VPCmainStore:
     Type: AWS::EC2::VPC
     Properties:
@@ -32,7 +32,7 @@ Parameters:
         - Key: Name
           Value: VPC-Mainstore
 
-#Configure the subnets
+  #Configure the subnets
   PublicSubnetA:
     Type: AWS::EC2::Subnet
     Properties:
@@ -54,7 +54,7 @@ Parameters:
       Tags:
         - Key: Name
           Value: PrivateSubnetA      
-#Configure the internet gateway
+  #Configure the internet gateway
 
   InternetGateway:
     Type: AWS::EC2::InternetGateway
@@ -69,7 +69,7 @@ Parameters:
       VpcId: !Ref VPCmainStore
       InternetGatewayId: !Ref InternetGateway
 
-#Configure route tables
+  #Configure route tables
 
   PublicRouteTableA:
     Type: AWS::EC2::RouteTable
@@ -113,7 +113,7 @@ Parameters:
       SubnetId: !Ref PrivateSubnetA
       RouteTableId: !Ref PrivateRouteTableA
   
-Outputs:
+ Outputs:
   VPCmainStore:
     Value: !Ref VPCmainStore
     Export:
