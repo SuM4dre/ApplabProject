@@ -1,4 +1,4 @@
-AWS Network TemplateFormatVersion: '2010-09-09'
+AWSNetworkTemplateFormatVersion: '2010-09-09'
 
 Description:
   Infrastructure high availability and of a web server
@@ -19,7 +19,7 @@ Parameters:
     Description: CIDR of private subnet A
     Default: 172.16.2.0/24
 
-Resources:
+ Resources:
 
 #Configure a VPC
   VPCmainStore:
