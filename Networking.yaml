@@ -70,19 +70,19 @@ Resources:
       InternetGatewayId: !Ref InternetGateway
 
   # Configure route tables
-  PublicRouteTableA:
+  PublicRouteTable:
     Type: AWS::EC2::RouteTable
     Properties:
       VpcId: !Ref VPCmainStore
       Tags:
         - Key: Name
-          Value: PublicRouteTableA
+          Value: PublicRouteTable
 
   PublicRoute:
     Type: AWS::EC2::Route
     DependsOn: InternetGatewayAttachment
     Properties:
-      RouteTableId: !Ref PublicRouteTableA
+      RouteTableId: !Ref PublicRouteTable
       DestinationCidrBlock: 0.0.0.0/0
       GatewayId: !Ref InternetGateway
 
@@ -90,27 +90,27 @@ Resources:
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties:
       SubnetId: !Ref PublicSubnetA
-      RouteTableId: !Ref PublicRouteTableA
+      RouteTableId: !Ref PublicRouteTable
 
-  PrivateRouteTableA:
+  PrivateRouteTable:
     Type: AWS::EC2::RouteTable
     Properties:
       VpcId: !Ref VPCmainStore
       Tags:
         - Key: Name
-          Value: PrivateRouteTableA
+          Value: PrivateRouteTable
 
-  PrivateRouteA:
+  PrivateRoute:
     Type: AWS::EC2::Route
     Properties:
-      RouteTableId: !Ref PrivateRouteTableA
+      RouteTableId: !Ref PrivateRouteTable
       DestinationCidrBlock: 10.0.0.0/0
-      
+
   PrivateSubnetARouteTableAssociation:
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties:
       SubnetId: !Ref PrivateSubnetA
-      RouteTableId: !Ref PrivateRouteTableA
+      RouteTableId: !Ref PrivateRouteTable
 
 Outputs:
   VPCmainStore:
