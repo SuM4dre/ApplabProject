@@ -104,9 +104,8 @@ Resources:
     Type: AWS::EC2::Route
     Properties:
       RouteTableId: !Ref PrivateRouteTableA
-      DestinationCidrBlock: 10.0.0.0/8
-      InstanceId: !Ref your-ec2-instance-id
-
+      DestinationCidrBlock: 10.0.0.0/0
+      
   PrivateSubnetARouteTableAssociation:
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties:
