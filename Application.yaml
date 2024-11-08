@@ -1,7 +1,7 @@
 AWSTemplateFormatVersion: '2010-09-09'
 
 Description:
-  Template to create the S3 bucket,CloudFront DynamoDb, ApiGateway and Lambda for the Application layer
+  Template to create the S3 bucket, CloudFront, DynamoDB, ApiGateway, and Lambda for the Application layer
 
 Parameters:
   S3BucketName:
@@ -20,25 +20,25 @@ Resources:
   WebsiteBucket:
     Type: 'AWS::S3::Bucket'
     Properties:
-      BucketName: 'harinas-semillas-buen-sabor'
+      BucketName: !Ref S3BucketName
       AccessControl: PublicRead
       Tags:
         - Key: "Name"
           Value: !Ref 'WebsiteBucket'
-  
+
   WebsiteBucketPolicy:
     Type: 'AWS::S3::BucketPolicy'
     Properties:
-    Bucket: !Ref WebsiteBucket
-    PolicyDocument:
-      Version: '2012-10-17'
-      Statement:
-        - Sid: PublicReadGetObject
-          Effect: Allow
-          Principal: "*"
-          Action: 's3:GetObject'
-          Resource: !Sub 'arn:aws:s3:::${WebsiteBucket}/*'
- 
+      Bucket: !Ref WebsiteBucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: PublicReadGetObject
+            Effect: Allow
+            Principal: "*"
+            Action: 's3:GetObject'
+            Resource: !Sub 'arn:aws:s3:::${WebsiteBucket}/*'
+
   # Bucket para registros
   LoggingBucket:
     Type: 'AWS::S3::Bucket'
@@ -52,29 +52,29 @@ Resources:
   CloudFrontDistribution:
     Type: 'AWS::CloudFront::Distribution'
     Properties:
-    DistributionConfig:
-      Enabled: true
-      Origins:
-        - DomainName: !GetAtt WebsiteBucket.DomainName
-          Id: S3Origin
-          S3OriginConfig: {}
-      DefaultCacheBehavior:
-        TargetOriginId: S3Origin
-        ViewerProtocolPolicy: redirect-to-https
-        ForwardedValues:
-          QueryString: false
-          Cookies:
-            Forward: none
-      Logging:
-        IncludeCookies: false
-        Bucket: !Ref 'LoggingBucket'  # Debes crear un bucket de registro aparte
-        Prefix: 'cloudfront-logs/'
+      DistributionConfig:
+        Enabled: true
+        Origins:
+          - DomainName: !GetAtt WebsiteBucket.DomainName
+            Id: S3Origin
+            S3OriginConfig: {}
+        DefaultCacheBehavior:
+          TargetOriginId: S3Origin
+          ViewerProtocolPolicy: redirect-to-https
+          ForwardedValues:
+            QueryString: false
+            Cookies:
+              Forward: none
+        Logging:
+          IncludeCookies: false
+          Bucket: !Ref LoggingBucket
+          Prefix: 'cloudfront-logs/'
 
   # DynamoDB Table
   ProductsTable:
     Type: 'AWS::DynamoDB::Table'
     Properties:
-      TableName: 'Productos'
+      TableName: !Ref DynamoDBName
       AttributeDefinitions:
         - AttributeName: ProductoID
           AttributeType: S
@@ -110,7 +110,7 @@ Resources:
                   - dynamodb:Scan
                   - dynamodb:GetItem
                   - dynamodb:PutItem
-                Resource: "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${DynamoDBName}"
+                Resource: !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${DynamoDBName}"
 
   # Lambda Function
   SearchProductFunction:
@@ -141,11 +141,11 @@ Resources:
                   'statusCode': 200,
                   'body': json.dumps(item)
               }
-     VpcConfig:
-       SubnetIds: 
-         - !Ref PrivateSubnetA
-       SecurityGroupIds:
-         - !Ref LambdaSecurityGroup     
+      vpcConfig:
+        SecurityGroupIds:
+          - !Ref LambdaSecurityGroup
+        SubnetIds:
+          - !Ref PrivateSubnetA
 
   # Lambda Security Group
   LambdaSecurityGroup:
@@ -154,17 +154,17 @@ Resources:
       GroupDescription: "Security group for Lambda function"
       VpcId: !Ref VpcId
       SecurityGroupIngress:
-        - IpProtocol: -1
-          FromPort: -1
-          ToPort: -1
-          CidrIp: 0.0.0.0/0    
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
 
   # API Gateway
   ApiGateway:
     Type: 'AWS::ApiGateway::RestApi'
     Properties:
       Name: 'ProductSearchApi'
-  
+
   # API Gateway Resource
   ApiGatewayResource:
     Type: 'AWS::ApiGateway::Resource'
@@ -172,7 +172,7 @@ Resources:
       ParentId: !GetAtt ApiGateway.RootResourceId
       PathPart: 'buscar-productos'
       RestApiId: !Ref ApiGateway
-  
+
   # API Gateway Method
   ApiGatewayMethod:
     Type: 'AWS::ApiGateway::Method'
@@ -184,7 +184,7 @@ Resources:
       Integration:
         IntegrationHttpMethod: 'POST'
         Type: 'AWS_PROXY'
-        Uri: 
+        Uri:
           Fn::Sub: 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${SearchProductFunction.Arn}/invocations'
 
   # Lambda Permission for API Gateway
@@ -194,5 +194,5 @@ Resources:
       Action: 'lambda:InvokeFunction'
       FunctionName: !Ref SearchProductFunction
       Principal: 'apigateway.amazonaws.com'
-      SourceArn: 
+      SourceArn:
         Fn::Sub: 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiGateway}/*/GET/buscar-productos'
