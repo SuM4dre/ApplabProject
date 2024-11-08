@@ -1,90 +1,131 @@
-####### se replantea proyecto y arcquitectura 
-VPC: Crea una VPC con soporte DNS.
-Internet Gateway: Proporciona una puerta de enlace para acceso a Internet.
-Subredes: Define una subred pública y una privada.
-Tabla de Rutas: Crea y asocia tablas de rutas para las subredes.
-Esta configuración proporciona una infraestructura de red básica, con subredes públicas y privadas, y conectividad a Internet.
-########  
+AWS Network TemplateFormatVersion: '2010-09-09'
 
-AWSTemplateFormatVersion: '2010-09-09'
-Description: Plantilla para la configuración de la red (VPC, Subredes, Internet Gateway)
+Description:
+  Infrastructure high availability and of a web server
 
-Resources:
-  MyVPC:
-    Type: 'AWS::EC2::VPC'
+Parameters:
+  VpcCIRD:
+    Type: String
+    Description: CIDR of the VPC
+    Default: 172.16.0.0/16
+  
+  PublicSubnetACIDR:
+    Type: String
+    Description: CIDR of public subnet A
+    Default: 172.16.1.0/24
+
+  PrivateSubnetACIDR:
+    Type: String
+    Description: CIDR of private subnet A
+    Default: 172.16.2.0/24
+
+ Resources:
+
+  #Configure a VPC
+  VPCmainStore:
+    Type: AWS::EC2::VPC
     Properties:
-      CidrBlock: '10.0.0.0/16'
-      EnableDnsSupport: true
+      CidrBlock: !Ref VpcCIRD
       EnableDnsHostnames: true
+      EnableDnsSupport: true
       Tags:
         - Key: Name
-          Value: 'MyVPC'
+          Value: VPC-Mainstore
 
-  MyInternetGateway:
-    Type: 'AWS::EC2::InternetGateway'
+  #Configure the subnets
+  PublicSubnetA:
+    Type: AWS::EC2::Subnet
     Properties:
-      Tags:
-        - Key: Name
-          Value: 'MyInternetGateway'
-
-  AttachGateway:
-    Type: 'AWS::EC2::VPCGatewayAttachment'
-    Properties:
-      VpcId: !Ref MyVPC
-      InternetGatewayId: !Ref MyInternetGateway
-
-  MyPublicSubnet:
-    Type: 'AWS::EC2::Subnet'
-    Properties:
-      VpcId: !Ref MyVPC
-      CidrBlock: '10.0.1.0/24'
+      VpcId: !Ref VPCmainStore
+      AvailabilityZone: us-east-1a
+      CidrBlock: !Ref PublicSubnetACIDR
       MapPublicIpOnLaunch: true
-      AvailabilityZone: 'us-west-2a'
       Tags:
         - Key: Name
-          Value: 'MyPublicSubnet'
+          Value: PublicSubnetA
 
-  MyPrivateSubnet:
-    Type: 'AWS::EC2::Subnet'
+  PrivateSubnetA:
+    Type: AWS::EC2::Subnet
     Properties:
-      VpcId: !Ref MyVPC
-      CidrBlock: '10.0.2.0/24'
-      AvailabilityZone: 'us-west-2a'
+      VpcId: !Ref VPCmainStore
+      AvailabilityZone: us-east-1a
+      CidrBlock: !Ref PrivateSubnetACIDR
+      MapPublicIpOnLaunch: false
       Tags:
         - Key: Name
-          Value: 'MyPrivateSubnet'
+          Value: PrivateSubnetA      
+#Configure the internet gateway
 
-  MyRouteTablePublic:
-    Type: 'AWS::EC2::RouteTable'
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
     Properties:
-      VpcId: !Ref MyVPC
       Tags:
         - Key: Name
-          Value: 'MyPublicRouteTable'
-
-  MyPublicRoute:
-    Type: 'AWS::EC2::Route'
+          Value: igw-mainstore
+  
+  InternetGatewayAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
     Properties:
-      RouteTableId: !Ref MyRouteTablePublic
-      DestinationCidrBlock: '0.0.0.0/0'
-      GatewayId: !Ref MyInternetGateway
+      VpcId: !Ref VPCmainStore
+      InternetGatewayId: !Ref InternetGateway
 
-  MySubnetRouteTableAssociationPublic:
-    Type: 'AWS::EC2::SubnetRouteTableAssociation'
-    Properties:
-      SubnetId: !Ref MyPublicSubnet
-      RouteTableId: !Ref MyRouteTablePublic
+#Configure route tables
 
-  MyRouteTablePrivate:
-    Type: 'AWS::EC2::RouteTable'
+  PublicRouteTableA:
+    Type: AWS::EC2::RouteTable
     Properties:
-      VpcId: !Ref MyVPC
+      VpcId: !Ref VPCmainStore
       Tags:
         - Key: Name
-          Value: 'MyPrivateRouteTable'
-
-  MySubnetRouteTableAssociationPrivate:
-    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+          Value: PublicRouteTableA
+  
+  PublicRoute:
+    Type: AWS::EC2::Route
+    DependsOn: InternetGatewayAttachment
     Properties:
-      SubnetId: !Ref MyPrivateSubnet
-      RouteTableId: !Ref MyRouteTablePrivate
+      RouteTableId: !Ref PublicRouteTableA
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+  
+  PublicSubnetARouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnetA
+      RouteTableId: !Ref PublicRouteTableA
+
+  PrivateRouteTableA:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPCmainStore
+      Tags:
+        - Key: Name
+          Value: PrivateRouteTableA
+ 
+  PrivateRouteA:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref PrivateRouteTableA
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref NatGatewayA
+  
+  PrivateSubnetARouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PrivateSubnetA
+      RouteTableId: !Ref PrivateRouteTableA
+  
+  Outputs:
+  VPCmainStore:
+    Value: !Ref VPCmainStore
+    Export:
+      Name: !Sub ${AWS::StackName}-VPCID
+  
+  PublicSubnetA:
+    Value: !Ref PublicSubnetA
+    Export:
+      Name: !Sub ${AWS::StackName}-PublicSubnetA
+  
+  PrivateSubnetA:
+    Value: !Ref PrivateSubnetA
+    Export:
+      Name: !Sub ${AWS::StackName}-PrivateSubnetA
