@@ -1,14 +1,14 @@
-AWSNetworkTemplateFormatVersion: '2010-09-09'
+AWSTemplateFormatVersion: '2010-09-09'
 
 Description:
   Infrastructure high availability and of a web server
 
 Parameters:
-  VpcCIRD:
+  VpcCIDR:
     Type: String
     Description: CIDR of the VPC
     Default: 172.16.0.0/16
-  
+
   PublicSubnetACIDR:
     Type: String
     Description: CIDR of public subnet A
@@ -21,18 +21,18 @@ Parameters:
 
 Resources:
 
-  #Configure a VPC
+  # Configure a VPC
   VPCmainStore:
     Type: AWS::EC2::VPC
     Properties:
-      CidrBlock: !Ref VpcCIRD
+      CidrBlock: !Ref VpcCIDR
       EnableDnsHostnames: true
       EnableDnsSupport: true
       Tags:
         - Key: Name
           Value: VPC-Mainstore
 
-  #Configure the subnets
+  # Configure the subnets
   PublicSubnetA:
     Type: AWS::EC2::Subnet
     Properties:
@@ -54,8 +54,8 @@ Resources:
       Tags:
         - Key: Name
           Value: PrivateSubnetA      
-  #Configure the internet gateway
 
+  # Configure the internet gateway
   InternetGateway:
     Type: AWS::EC2::InternetGateway
     Properties:
@@ -69,8 +69,7 @@ Resources:
       VpcId: !Ref VPCmainStore
       InternetGatewayId: !Ref InternetGateway
 
-  #Configure route tables
-
+  # Configure route tables
   PublicRouteTableA:
     Type: AWS::EC2::RouteTable
     Properties:
@@ -78,7 +77,7 @@ Resources:
       Tags:
         - Key: Name
           Value: PublicRouteTableA
-  
+
   PublicRoute:
     Type: AWS::EC2::Route
     DependsOn: InternetGatewayAttachment
@@ -86,7 +85,7 @@ Resources:
       RouteTableId: !Ref PublicRouteTableA
       DestinationCidrBlock: 0.0.0.0/0
       GatewayId: !Ref InternetGateway
-  
+
   PublicSubnetARouteTableAssociation:
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties:
@@ -100,30 +99,31 @@ Resources:
       Tags:
         - Key: Name
           Value: PrivateRouteTableA
- 
+
   PrivateRouteA:
     Type: AWS::EC2::Route
     Properties:
       RouteTableId: !Ref PrivateRouteTableA
-      DestinationCidrBlock: 0.0.0.0/0
-        
+      DestinationCidrBlock: 10.0.0.0/8
+      InstanceId: !Ref your-ec2-instance-id
+
   PrivateSubnetARouteTableAssociation:
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties:
       SubnetId: !Ref PrivateSubnetA
       RouteTableId: !Ref PrivateRouteTableA
-  
- Outputs:
+
+Outputs:
   VPCmainStore:
     Value: !Ref VPCmainStore
     Export:
       Name: !Sub ${AWS::StackName}-VPCID
-  
+
   PublicSubnetA:
     Value: !Ref PublicSubnetA
     Export:
       Name: !Sub ${AWS::StackName}-PublicSubnetA
-  
+
   PrivateSubnetA:
     Value: !Ref PrivateSubnetA
     Export:
