@@ -21,7 +21,7 @@ Parameters:
 
  Resources:
 
-  #Configure a VPC
+#Configure a VPC
   VPCmainStore:
     Type: AWS::EC2::VPC
     Properties:
@@ -32,7 +32,7 @@ Parameters:
         - Key: Name
           Value: VPC-Mainstore
 
-  #Configure the subnets
+#Configure the subnets
   PublicSubnetA:
     Type: AWS::EC2::Subnet
     Properties:
@@ -114,7 +114,7 @@ Parameters:
       SubnetId: !Ref PrivateSubnetA
       RouteTableId: !Ref PrivateRouteTableA
   
-  Outputs:
+Outputs:
   VPCmainStore:
     Value: !Ref VPCmainStore
     Export:
