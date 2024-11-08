@@ -4,6 +4,11 @@ Description:
   Template to create the S3 bucket, CloudFront, DynamoDB, ApiGateway, and Lambda for the Application layer
 
 Parameters:
+  VpcCIDR:
+    Type: String
+    Description: CIDR of the VPC
+    Default: 172.16.0.0/16
+
   S3BucketName:
     Description: "Nombre del bucket S3 para el sitio web"
     Type: String
@@ -26,6 +31,7 @@ Resources:
       Tags:
         - Key: Name
           Value: VPC-Mainstore
+  
 
   # S3 Bucket for Website
   WebsiteBucket:
