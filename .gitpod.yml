@@ -10,4 +10,8 @@ tasks:
   - name: flask-python
     command: |
       cd python-container
-      pip install -r requirements.txt
+      pip install flask
+      pip install flask-cors
+      pip install boto3
+      pip install python-dotenv
+      cd $THEIA_WORKSPACE_ROOT
