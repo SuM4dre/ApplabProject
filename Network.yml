@@ -19,7 +19,7 @@ Parameters:
     Description: CIDR of private subnet A
     Default: 172.16.2.0/24
 
- Resources:
+Resources:
 
 #Configure a VPC
   VPCmainStore:
