@@ -16,6 +16,17 @@ Parameters:
 
 Resources:
 
+  # Configure a VPC
+  VPCmainStore:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: !Ref VpcCIDR
+      EnableDnsHostnames: true
+      EnableDnsSupport: true
+      Tags:
+        - Key: Name
+          Value: VPC-Mainstore
+
   # S3 Bucket for Website
   WebsiteBucket:
     Type: 'AWS::S3::Bucket'
@@ -152,7 +163,7 @@ Resources:
     Type: 'AWS::EC2::SecurityGroup'
     Properties:
       GroupDescription: "Security group for Lambda function"
-      VpcId: !Ref VpcId
+      VpcId: !Ref VPCmainStore
       SecurityGroupIngress:
         - IpProtocol: tcp
           FromPort: 443
