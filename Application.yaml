@@ -4,7 +4,7 @@ Description:
   Template to create the S3 bucket, CloudFront, DynamoDB, ApiGateway, and Lambda for the Application layer
 
 Parameters:
-   
+
   WebsiteBucket:
     Type: String
     Description: "Libros Harinas y Semillas"
@@ -67,3 +67,4 @@ Resources:
       Tags:
         - Key: "Name"
           Value: !Ref 'ProductsTable'
+
