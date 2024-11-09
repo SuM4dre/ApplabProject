@@ -3,6 +3,7 @@ AWSTemplateFormatVersion: '2010-09-09'
 Description: CloudFront Lambda ApiGateay
 
 Resources:
+
   # CloudFront Distribution
   CloudFrontDistribution:
     Type: 'AWS::CloudFront::Distribution'
@@ -10,7 +11,6 @@ Resources:
       DistributionConfig:
         Enabled: true
         Origins:
-          - DomainName: !GetAtt WebsiteBucket.DomainName
             Id: S3Origin
             S3OriginConfig: {}
         DefaultCacheBehavior:

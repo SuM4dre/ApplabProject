@@ -11,21 +11,21 @@ Parameters:
     Default: "Libros Harinas y Semillas"
 
   DynamoDBName:
-    Description: "Nombre de la tabla DynamoDB para la tienda de libros"
+    Description: "Lista de precios"
     Type: String
     Default: "Productos"
 
 Resources:
 
   # S3 Bucket for Website
-  WebsiteBucket:
+  swebsitebucketh:
     Type: 'AWS::S3::Bucket'
     Properties:
       BucketName: !Ref WebsiteBucketName
       AccessControl: PublicRead
       Tags:
         - Key: "Name"
-          Value: !Ref 'WebsiteBucket'
+          Value: !Ref 'swebsitebucketh'
 
   # Bucket para registros
   LoggingBucket:
@@ -40,7 +40,7 @@ Resources:
   WebsiteBucketPolicy:
     Type: 'AWS::S3::BucketPolicy'
     Properties:
-      Bucket: !Ref WebsiteBucket
+      Bucket: !Ref Websiteswebsitebucketh
       PolicyDocument:
         Version: '2012-10-17'
         Statement:
@@ -48,7 +48,7 @@ Resources:
             Effect: Allow
             Principal: "*"
             Action: 's3:GetObject'
-            Resource: !Sub 'arn:aws:s3:::${WebsiteBucketName}/*'
+            Resource: !Sub 'arn:aws:s3:::${Websiteswebsitebucketh}/*'
 
   # DynamoDB Table
   ProductsTable:
@@ -67,4 +67,5 @@ Resources:
       Tags:
         - Key: "Name"
           Value: !Ref 'ProductsTable'
+
 
