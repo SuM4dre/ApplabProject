@@ -133,19 +133,6 @@ Resources:
         - Key: "Name"
           Value: !Ref 'WebsiteBucket'
 
-  WebsiteBucketPolicy:
-    Type: 'AWS::S3::BucketPolicy'
-    Properties:
-      Bucket: !Ref WebsiteBucket
-      PolicyDocument:
-        Version: '2012-10-17'
-        Statement:
-          - Sid: PublicReadGetObject
-            Effect: Allow
-            Principal: "*"
-            Action: 's3:GetObject'
-            Resource: !Sub 'arn:aws:s3:::${WebsiteBucket}/*'
-
   # Bucket para registros
   LoggingBucket:
     Type: 'AWS::S3::Bucket'
@@ -176,6 +163,20 @@ Resources:
           IncludeCookies: false
           Bucket: !Ref LoggingBucket
           Prefix: 'cloudfront-logs/'
+
+  # Website Bucket Policy
+  WebsiteBucketPolicy:
+    Type: 'AWS::S3::BucketPolicy'
+    Properties:
+      Bucket: !Ref WebsiteBucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: PublicReadGetObject
+            Effect: Allow
+            Principal: "*"
+            Action: 's3:GetObject'
+            Resource: !Sub 'arn:aws:s3:::${WebsiteBucket}/*'
 
   # DynamoDB Table
   ProductsTable:
@@ -248,7 +249,7 @@ Resources:
                   'statusCode': 200,
                   'body': json.dumps(item)
               }
-      vpcConfig:
+      VpcConfig:
         SecurityGroupIds:
           - !Ref LambdaSecurityGroup
         SubnetIds:
@@ -318,4 +319,6 @@ Outputs:
   PrivateSubnetA:
     Value: !Ref PrivateSubnetA
     Export:
-      Name: !Sub ${AWS::StackName}-PrivateSubnetA 
+      Name: !Sub ${AWS::StackName}-PrivateSubnetA
+
+
