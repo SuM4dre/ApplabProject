@@ -4,25 +4,11 @@ Description:
   Template to create the S3 bucket, CloudFront, DynamoDB, ApiGateway, and Lambda for the Application layer
 
 Parameters:
-  VpcCIDR:
+   
+  S3WebsiteBucket:
     Type: String
-    Description: CIDR of the VPC
-    Default: 172.16.0.0/16
-
-  PublicSubnetACIDR:
-    Type: String
-    Description: CIDR of public subnet A
-    Default: 172.16.1.0/24
-
-  PrivateSubnetACIDR:
-    Type: String
-    Description: CIDR of private subnet A
-    Default: 172.16.2.0/24
-    
-  S3BucketName:
-    Description: "Nombre del bucket S3 para el sitio web"
-    Type: String
-    Default: "harinas-semillas-buen-sabor"
+    Description: "Libros Harinas y Semillas"
+    Default: "Libros Harinas y Semillas"
 
   DynamoDBName:
     Description: "Nombre de la tabla DynamoDB para la tienda de libros"
@@ -30,98 +16,6 @@ Parameters:
     Default: "Productos"
 
 Resources:
-
-  # Configure a VPC
-  VPCmainStore:
-    Type: AWS::EC2::VPC
-    Properties:
-      CidrBlock: !Ref VpcCIDR
-      EnableDnsHostnames: true
-      EnableDnsSupport: true
-      Tags:
-        - Key: Name
-          Value: VPC-Mainstore
-   
-  # Configure the subnets
-  PublicSubnetA:
-    Type: AWS::EC2::Subnet
-    Properties:
-      VpcId: !Ref VPCmainStore
-      AvailabilityZone: us-east-1a
-      CidrBlock: !Ref PublicSubnetACIDR
-      MapPublicIpOnLaunch: true
-      Tags:
-        - Key: Name
-          Value: PublicSubnetA
-
-  PrivateSubnetA:
-    Type: AWS::EC2::Subnet
-    Properties:
-      VpcId: !Ref VPCmainStore
-      AvailabilityZone: us-east-1a
-      CidrBlock: !Ref PrivateSubnetACIDR
-      MapPublicIpOnLaunch: false
-      Tags:
-        - Key: Name
-          Value: PrivateSubnetA
-
-  # Configure the internet gateway
-  InternetGateway:
-    Type: AWS::EC2::InternetGateway
-    Properties:
-      Tags:
-        - Key: Name
-          Value: igw-mainstore
-  
-  InternetGatewayAttachment:
-    Type: AWS::EC2::VPCGatewayAttachment
-    Properties:
-      VpcId: !Ref VPCmainStore
-      InternetGatewayId: !Ref InternetGateway
-
-  # Configure route tables
-  PublicRouteTable:
-    Type: AWS::EC2::RouteTable
-    Properties:
-      VpcId: !Ref VPCmainStore
-      Tags:
-        - Key: Name
-          Value: PublicRouteTable
-
-  PublicRoute:
-    Type: AWS::EC2::Route
-    DependsOn: InternetGatewayAttachment
-    Properties:
-      RouteTableId: !Ref PublicRouteTable
-      DestinationCidrBlock: 0.0.0.0/0
-      GatewayId: !Ref InternetGateway
-
-  PublicSubnetARouteTableAssociation:
-    Type: AWS::EC2::SubnetRouteTableAssociation
-    Properties:
-      SubnetId: !Ref PublicSubnetA
-      RouteTableId: !Ref PublicRouteTable
-
-  PrivateRouteTable:
-    Type: AWS::EC2::RouteTable
-    Properties:
-      VpcId: !Ref VPCmainStore
-      Tags:
-        - Key: Name
-          Value: PrivateRouteTable
-
-  PrivateRoute:
-    Type: AWS::EC2::Route
-    Properties:
-      RouteTableId: !Ref PrivateRouteTable
-      DestinationCidrBlock: 10.0.0.0/0
-      GatewayId: !Ref InternetGateway
-      
-  PrivateSubnetARouteTableAssociation:
-    Type: AWS::EC2::SubnetRouteTableAssociation
-    Properties:
-      SubnetId: !Ref PrivateSubnetA
-      RouteTableId: !Ref PrivateRouteTable
 
   # S3 Bucket for Website
   WebsiteBucket:
@@ -141,28 +35,6 @@ Resources:
       AccessControl: LogDeliveryWrite
       VersioningConfiguration:
         Status: Enabled
-
-  # CloudFront Distribution
-  CloudFrontDistribution:
-    Type: 'AWS::CloudFront::Distribution'
-    Properties:
-      DistributionConfig:
-        Enabled: true
-        Origins:
-          - DomainName: !GetAtt WebsiteBucket.DomainName
-            Id: S3Origin
-            S3OriginConfig: {}
-        DefaultCacheBehavior:
-          TargetOriginId: S3Origin
-          ViewerProtocolPolicy: redirect-to-https
-          ForwardedValues:
-            QueryString: false
-            Cookies:
-              Forward: none
-        Logging:
-          IncludeCookies: false
-          Bucket: !Ref LoggingBucket
-          Prefix: 'cloudfront-logs/'
 
   # Website Bucket Policy
   WebsiteBucketPolicy:
@@ -195,130 +67,5 @@ Resources:
       Tags:
         - Key: "Name"
           Value: !Ref 'ProductsTable'
-
-  # Lambda Execution Role
-  LambdaExecutionRole:
-    Type: 'AWS::IAM::Role'
-    Properties:
-      AssumeRolePolicyDocument:
-        Version: '2012-10-17'
-        Statement:
-          - Effect: Allow
-            Principal:
-              Service: lambda.amazonaws.com
-            Action: sts:AssumeRole
-      Policies:
-        - PolicyName: LambdaDynamoDBPolicy
-          PolicyDocument:
-            Version: '2012-10-17'
-            Statement:
-              - Effect: Allow
-                Action:
-                  - dynamodb:Query
-                  - dynamodb:Scan
-                  - dynamodb:GetItem
-                  - dynamodb:PutItem
-                Resource: !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${DynamoDBName}"
-
-  # Lambda Function
-  SearchProductFunction:
-    Type: 'AWS::Lambda::Function'
-    Properties:
-      FunctionName: 'SearchProductFunction'
-      Handler: 'index.lambda_handler'
-      Role: !GetAtt LambdaExecutionRole.Arn
-      Runtime: 'python3.8'
-      Code:
-        ZipFile: |
-          import json
-          import boto3
-
-          def lambda_handler(event, context):
-              dynamodb = boto3.resource('dynamodb')
-              table = dynamodb.Table('Productos')
-              producto_id = event['queryStringParameters']['ProductoID']
-              
-              response = table.get_item(
-                  Key={
-                      'ProductoID': producto_id
-                  }
-              )
-              
-              item = response.get('Item', {})
-              return {
-                  'statusCode': 200,
-                  'body': json.dumps(item)
-              }
-      VpcConfig:
-        SecurityGroupIds:
-          - !Ref LambdaSecurityGroup
-        SubnetIds:
-          - !Ref PrivateSubnetA
-
-  # Lambda Security Group
-  LambdaSecurityGroup:
-    Type: 'AWS::EC2::SecurityGroup'
-    Properties:
-      GroupDescription: "Security group for Lambda function"
-      VpcId: !Ref VPCmainStore
-      SecurityGroupIngress:
-        - IpProtocol: tcp
-          FromPort: 443
-          ToPort: 443
-          CidrIp: 0.0.0.0/0
-
-  # API Gateway
-  ApiGateway:
-    Type: 'AWS::ApiGateway::RestApi'
-    Properties:
-      Name: 'ProductSearchApi'
-
-  # API Gateway Resource
-  ApiGatewayResource:
-    Type: 'AWS::ApiGateway::Resource'
-    Properties:
-      ParentId: !GetAtt ApiGateway.RootResourceId
-      PathPart: 'buscar-productos'
-      RestApiId: !Ref ApiGateway
-
-  # API Gateway Method
-  ApiGatewayMethod:
-    Type: 'AWS::ApiGateway::Method'
-    Properties:
-      HttpMethod: 'GET'
-      ResourceId: !Ref ApiGatewayResource
-      RestApiId: !Ref ApiGateway
-      AuthorizationType: 'NONE'
-      Integration:
-        IntegrationHttpMethod: 'POST'
-        Type: 'AWS_PROXY'
-        Uri:
-          Fn::Sub: 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${SearchProductFunction.Arn}/invocations'
-
-  # Lambda Permission for API Gateway
-  LambdaApiGatewayPermission:
-    Type: 'AWS::Lambda::Permission'
-    Properties:
-      Action: 'lambda:InvokeFunction'
-      FunctionName: !Ref SearchProductFunction
-      Principal: 'apigateway.amazonaws.com'
-      SourceArn:
-        Fn::Sub: 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiGateway}/*/GET/buscar-productos'
-    
-Outputs:
-  VPCmainStore:
-    Value: !Ref VPCmainStore
-    Export:
-      Name: !Sub ${AWS::StackName}-VPCID
-
-  PublicSubnetA:
-    Value: !Ref PublicSubnetA
-    Export:
-      Name: !Sub ${AWS::StackName}-PublicSubnetA
-
-  PrivateSubnetA:
-    Value: !Ref PrivateSubnetA
-    Export:
-      Name: !Sub ${AWS::StackName}-PrivateSubnetA
 
 

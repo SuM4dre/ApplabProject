@@ -1,0 +1,174 @@
+AWSTemplateFormatVersion: '2010-09-09'
+
+Description: CloudFront Lambda ApiGateay
+
+Resources:
+  # CloudFront Distribution
+  CloudFrontDistribution:
+    Type: 'AWS::CloudFront::Distribution'
+    Properties:
+      DistributionConfig:
+        Enabled: true
+        Origins:
+          - DomainName: !GetAtt WebsiteBucket.DomainName
+            Id: S3Origin
+            S3OriginConfig: {}
+        DefaultCacheBehavior:
+          TargetOriginId: S3Origin
+          ViewerProtocolPolicy: redirect-to-https
+          ForwardedValues:
+            QueryString: false
+            Cookies:
+              Forward: none
+        Logging:
+          IncludeCookies: false
+          Bucket: !Ref LoggingBucket
+          Prefix: 'cloudfront-logs/'
+
+  # Lambda Execution Role
+  LambdaExecutionRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: LambdaDynamoDBPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - dynamodb:Query
+                  - dynamodb:Scan
+                  - dynamodb:GetItem
+                  - dynamodb:PutItem
+                Resource: !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${DynamoDBName}"
+
+  # Lambda Function
+  SearchProductFunction:
+    Type: 'AWS::Lambda::Function'
+    Properties:
+      FunctionName: 'SearchProductFunction'
+      Handler: 'index.lambda_handler'
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Runtime: 'python3.8'
+      Code:
+        ZipFile: |
+          import json
+          import boto3
+
+          def lambda_handler(event, context):
+              dynamodb = boto3.resource('dynamodb')
+              table = dynamodb.Table('Productos')
+              producto_id = event['queryStringParameters']['ProductoID']
+              
+              response = table.get_item(
+                  Key={
+                      'ProductoID': producto_id
+                  }
+              )
+              
+              item = response.get('Item', {})
+              return {
+                  'statusCode': 200,
+                  'body': json.dumps(item)
+              }
+      VpcConfig:
+        SecurityGroupIds:
+          - !Ref LambdaSecurityGroup
+        SubnetIds:
+          - !Ref PrivateSubnetA
+
+  # Lambda Security Group
+  LambdaSecurityGroup:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupDescription: "Security group for Lambda function"
+      VpcId: !Ref VPCmainStore
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
+
+  # API Gateway
+  ApiGateway:
+    Type: 'AWS::ApiGateway::RestApi'
+    Properties:
+      Name: 'ProductSearchApi'
+
+  # API Gateway Resource
+  ApiGatewayResource:
+    Type: 'AWS::ApiGateway::Resource'
+    Properties:
+      ParentId: !GetAtt ApiGateway.RootResourceId
+      PathPart: 'buscar-productos'
+      RestApiId: !Ref ApiGateway
+
+  # API Gateway Method
+  ApiGatewayMethod:
+    Type: 'AWS::ApiGateway::Method'
+    Properties:
+      HttpMethod: 'GET'
+      ResourceId: !Ref ApiGatewayResource
+      RestApiId: !Ref ApiGateway
+      AuthorizationType: 'NONE'
+      Integration:
+        IntegrationHttpMethod: 'POST'
+        Type: 'AWS_PROXY'
+        Uri:
+          Fn::Sub: 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${SearchProductFunction.Arn}/invocations'
+
+  # Lambda Permission for API Gateway
+  LambdaApiGatewayPermission:
+    Type: 'AWS::Lambda::Permission'
+    Properties:
+      Action: 'lambda:InvokeFunction'
+      FunctionName: !Ref SearchProductFunction
+      Principal: 'apigateway.amazonaws.com'
+      SourceArn:
+        Fn::Sub: 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiGateway}/*/GET/buscar-productos'
+  
+  APIGatewayMethod:
+    Type: 'AWS::ApiGateway::Method'
+    Properties:
+      AuthorizationType: 'NONE'
+      HttpMethod: 'GET'
+      ResourceId:
+        Ref: 'APIGatewayResource'
+      RestApiId:
+        Ref: 'APIGateway'
+      Integration:
+        Type: 'HTTP'
+        IntegrationHttpMethod: 'GET'
+        Uri: 'https://api.appinventor.example/v1/data'
+        IntegrationResponses:
+          - StatusCode: '200'
+        RequestParameters:
+          integration.request.querystring.param1: 'method.request.querystring.param1'
+      MethodResponses:
+        - StatusCode: '200'
+  
+  LambdaFunction:
+    Type: 'AWS::Lambda::Function'
+    Properties:
+      FunctionName: 'AppFunction'
+      Handler: 'index.handler'
+      Role: 'arn:aws:iam::<ACCOUNT_ID>:role/execution_role'
+      Code:
+        S3Bucket: 'app-storage-bucket'
+        S3Key: 'function-code.zip'
+      Runtime: 'nodejs14.x'
+  
+  LambdaPermission:
+    Type: 'AWS::Lambda::Permission'
+    Properties:
+      Action: 'lambda:InvokeFunction'
+      FunctionName:
+        Ref: 'LambdaFunction'
+      Principal: 'apigateway.amazonaws.com'
