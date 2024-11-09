@@ -5,7 +5,7 @@ Description:
 
 Parameters:
    
-  S3WebsiteBucket:
+  WebsiteBucket:
     Type: String
     Description: "Libros Harinas y Semillas"
     Default: "Libros Harinas y Semillas"
@@ -21,7 +21,7 @@ Resources:
   WebsiteBucket:
     Type: 'AWS::S3::Bucket'
     Properties:
-      BucketName: !Ref S3BucketName
+      BucketName: !Ref WebsiteBucket
       AccessControl: PublicRead
       Tags:
         - Key: "Name"
@@ -31,7 +31,7 @@ Resources:
   LoggingBucket:
     Type: 'AWS::S3::Bucket'
     Properties:
-      BucketName: 'tu-nombre-de-bucket-de-registros'
+      BucketName: 'bucket-de-registros'
       AccessControl: LogDeliveryWrite
       VersioningConfiguration:
         Status: Enabled
@@ -67,5 +67,3 @@ Resources:
       Tags:
         - Key: "Name"
           Value: !Ref 'ProductsTable'
-
-
