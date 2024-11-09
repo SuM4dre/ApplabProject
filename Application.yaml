@@ -4,7 +4,6 @@ Description:
   Template to create the S3 bucket, CloudFront, DynamoDB, ApiGateway, and Lambda for the Application layer
 
 Parameters:
-
   WebsiteBucketName:
     Type: String
     Description: "Libros Harinas y Semillas"
@@ -16,7 +15,6 @@ Parameters:
     Default: "Productos"
 
 Resources:
-
   # S3 Bucket for Website
   swebsitebucketh:
     Type: 'AWS::S3::Bucket'
@@ -48,7 +46,8 @@ Resources:
             Effect: Allow
             Principal: "*"
             Action: 's3:GetObject'
-            Resource: !Sub 'arn:aws:s3:::${swebsitebucketh}/*'
+            Resource: !Sub 'arn:aws:s3:::${WebsiteBucketName}/*'
+    DependsOn: swebsitebucketh
 
   # DynamoDB Table
   ProductsTable:
@@ -68,4 +67,43 @@ Resources:
         - Key: "Name"
           Value: !Ref 'ProductsTable'
 
+  # CloudFront Distribution
+  WebsiteDistribution:
+    Type: 'AWS::CloudFront::Distribution'
+    Properties:
+      DistributionConfig:
+        Origins:
+          - DomainName: !GetAtt swebsitebucketh.DomainName
+            Id: S3Origin
+            S3OriginConfig:
+              OriginAccessIdentity: ''
+        Enabled: true
+        DefaultCacheBehavior:
+          TargetOriginId: S3Origin
+          ViewerProtocolPolicy: redirect-to-https
+          AllowedMethods:
+            - GET
+            - HEAD
+          CachedMethods:
+            - GET
+            - HEAD
+          ForwardedValues:
+            QueryString: false
+            Cookies:
+              Forward: none
+        DefaultRootObject: index.html
+
+  # Lambda Function
+  MyLambdaFunction:
+    Type: 'AWS::Lambda::Function'
+    Properties:
+      FunctionName: 'MyLambdaFunction'
+      Handler: 'index.handler'
+      Role: 'arn:aws:iam::account-id:role/execution_role'
+      Code:
+        S3Bucket: 'lambda-functions-bucket'
+        S3Key: 'my-lambda-function.zip'
+      Runtime: 'nodejs14.x'
+      Timeout: 10
+      MemorySize: 128
 
