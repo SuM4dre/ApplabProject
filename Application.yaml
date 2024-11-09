@@ -5,7 +5,7 @@ Description:
 
 Parameters:
 
-  WebsiteBucket:
+  WebsiteBucketName:
     Type: String
     Description: "Libros Harinas y Semillas"
     Default: "Libros Harinas y Semillas"
@@ -21,7 +21,7 @@ Resources:
   WebsiteBucket:
     Type: 'AWS::S3::Bucket'
     Properties:
-      BucketName: !Ref WebsiteBucket
+      BucketName: !Ref WebsiteBucketName
       AccessControl: PublicRead
       Tags:
         - Key: "Name"
@@ -48,7 +48,7 @@ Resources:
             Effect: Allow
             Principal: "*"
             Action: 's3:GetObject'
-            Resource: !Sub 'arn:aws:s3:::${WebsiteBucket}/*'
+            Resource: !Sub 'arn:aws:s3:::${WebsiteBucketName}/*'
 
   # DynamoDB Table
   ProductsTable:
