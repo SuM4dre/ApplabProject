@@ -40,7 +40,7 @@ Resources:
   WebsiteBucketPolicy:
     Type: 'AWS::S3::BucketPolicy'
     Properties:
-      Bucket: !Ref Websiteswebsitebucketh
+      Bucket: !Ref swebsitebucketh
       PolicyDocument:
         Version: '2012-10-17'
         Statement:
@@ -48,7 +48,7 @@ Resources:
             Effect: Allow
             Principal: "*"
             Action: 's3:GetObject'
-            Resource: !Sub 'arn:aws:s3:::${Websiteswebsitebucketh}/*'
+            Resource: !Sub 'arn:aws:s3:::${swebsitebucketh}/*'
 
   # DynamoDB Table
   ProductsTable:
