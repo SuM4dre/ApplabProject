@@ -7,7 +7,7 @@ Parameters:
   WebsiteBucketName:
     Type: String
     Description: "Libros Harinas y Semillas"
-    Default: "Libros Harinas y Semillas"
+    Default: "librosharinasysemillas"
 
   DynamoDBName:
     Description: "Lista de precios"
@@ -19,7 +19,7 @@ Resources:
   ProductsTable:
     Type: 'AWS::DynamoDB::Table'
     Properties:
-      TableName: Ref DynamoDBName
+      TableName: !Ref DynamoDBName
       AttributeDefinitions:
         - AttributeName: ProductoID
           AttributeType: S
@@ -31,23 +31,23 @@ Resources:
         WriteCapacityUnits: 5
       Tags:
         - Key: "Name"
-          Value: Ref 'ProductsTable'
+          Value: "Productos"
 
   # S3 Bucket for Website
   swebsitebucketh:
     Type: 'AWS::S3::Bucket'
     Properties:
-      BucketName: Ref WebsiteBucketName
+      BucketName: !Ref WebsiteBucketName
       AccessControl: PublicRead
       Tags:
         - Key: "Name"
-          Value: Ref 'swebsitebucketh'
+          Value: !Ref WebsiteBucketName
 
   # Website Bucket Policy
   WebsiteBucketPolicy:
     Type: 'AWS::S3::BucketPolicy'
     Properties:
-      Bucket: Ref swebsitebucketh
+      Bucket: !Ref swebsitebucketh
       PolicyDocument:
         Version: '2012-10-17'
         Statement:
@@ -63,7 +63,7 @@ Resources:
     Properties:
       DistributionConfig:
         Origins:
-          - DomainName: GetAtt swebsitebucketh.DomainName
+          - DomainName: !GetAtt swebsitebucketh.DomainName
             Id: S3Origin
             S3OriginConfig:
               OriginAccessIdentity: ''
@@ -119,12 +119,12 @@ Resources:
     Properties:
       FunctionName: 'MyLambdaFunction'
       Handler: 'index.handler'
-      Role: GetAtt LambdaExecutionRole.Arn
+      Role: !GetAtt LambdaExecutionRole.Arn
       Code:
         S3Bucket: 'lambda-functions-bucket'
         S3Key: 'my-lambda-function.zip'
       Runtime: 'nodejs14.x'
-      Timeout: 10
+      Timeout: 15
       MemorySize: 128
 
   # API Gateway
