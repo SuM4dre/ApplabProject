@@ -1,0 +1,77 @@
+AWSTemplateFormatVersion: '2010-09-09'
+
+Description: >
+  Template to create the Lambda function for the Application layer
+
+Parameters:
+  WebsiteBucketName:
+    Type: String
+    Description: "Libros Harinas y Semillas"
+    Default: "librosharinasysemillas"
+
+  DynamoDBName:
+    Description: "Lista de precios"
+    Type: String
+    Default: "Productos"
+
+Resources:
+  # LambdaFunctionBucket Policy
+  LambdaFunctionsBucketPolicy:
+    Type: 'AWS::S3::BucketPolicy'
+    Properties:
+      Bucket: 'librosharinasysemillas'
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS: !Sub "arn:aws:iam::${AWS::AccountId}:role/${LambdaExecutionRole}"
+            Action: 's3:GetObject'
+            Resource: 'arn:aws:s3:::librosharinasysemillas/mylambdafunction.zip'
+
+  # Lambda Execution Role
+  LambdaExecutionRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: 'lambda.amazonaws.com'
+            Action: 'sts:AssumeRole'
+      Policies:
+        - PolicyName: 'LambdaExecutionPolicy'
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'logs:CreateLogGroup'
+                  - 'logs:CreateLogStream'
+                  - 'logs:PutLogEvents'
+                Resource: 'arn:aws:logs:*:*:*'
+              - Effect: Allow
+                Action:
+                  - 'dynamodb:PutItem'
+                  - 'dynamodb:GetItem'
+                  - 'dynamodb:UpdateItem'
+                  - 'dynamodb:DeleteItem'
+                Resource: !Sub 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${DynamoDBName}'
+              - Effect: Allow
+                Action: 's3:GetObject'
+                Resource: 'arn:aws:s3:::librosharinasysemillas/mylambdafunction.zip'
+
+  # Lambda Function
+  MyLambdaFunction:
+    Type: 'AWS::Lambda::Function'
+    Properties:
+      FunctionName: 'mylambdafunction'
+      Handler: 'index.handler'
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Code:
+        S3Bucket: 'librosharinasysemillas'
+        S3Key: 'mylambdafunction.zip'
+      Runtime: 'python3.12'
+      Timeout: 15
+      MemorySize: 128

@@ -38,7 +38,11 @@ Resources:
     Type: 'AWS::S3::Bucket'
     Properties:
       BucketName: !Ref WebsiteBucketName
-      AccessControl: PublicRead
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        IgnorePublicAcls: true
+        BlockPublicPolicy: false
+        RestrictPublicBuckets: false
       Tags:
         - Key: "Name"
           Value: !Ref WebsiteBucketName
@@ -55,7 +59,7 @@ Resources:
             Effect: Allow
             Principal: "*"
             Action: 's3:GetObject'
-            Resource: Sub 'arn:aws:s3:::${WebsiteBucketName}/*'
+            Resource: !Sub 'arn:aws:s3:::${WebsiteBucketName}/*'
 
   # CloudFront Distribution
   WebsiteDistribution:
@@ -82,54 +86,12 @@ Resources:
             Cookies:
               Forward: none
         DefaultRootObject: index.html
-
-  # Lambda Execution Role
-  LambdaExecutionRole:
-    Type: 'AWS::IAM::Role'
-    Properties:
-      AssumeRolePolicyDocument:
-        Version: '2012-10-17'
-        Statement:
-          - Effect: Allow
-            Principal:
-              Service: 'lambda.amazonaws.com'
-            Action: 'sts:AssumeRole'
-      Policies:
-        - PolicyName: 'LambdaExecutionPolicy'
-          PolicyDocument:
-            Version: '2012-10-17'
-            Statement:
-              - Effect: Allow
-                Action:
-                  - 'logs:CreateLogGroup'
-                  - 'logs:CreateLogStream'
-                  - 'logs:PutLogEvents'
-                Resource: 'arn:aws:logs:*:*:*'
-              - Effect: Allow
-                Action:
-                  - 'dynamodb:PutItem'
-                  - 'dynamodb:GetItem'
-                  - 'dynamodb:UpdateItem'
-                  - 'dynamodb:DeleteItem'
-                Resource: Sub 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${DynamoDBName}'
-
-  # Lambda Function
-  MyLambdaFunction:
-    Type: 'AWS::Lambda::Function'
-    Properties:
-      FunctionName: 'MyLambdaFunction'
-      Handler: 'index.handler'
-      Role: !GetAtt LambdaExecutionRole.Arn
-      Code:
-        S3Bucket: 'lambda-functions-bucket'
-        S3Key: 'my-lambda-function.zip'
-      Runtime: 'nodejs14.x'
-      Timeout: 15
-      MemorySize: 128
-
+  
   # API Gateway
   ApiGateway:
     Type: 'AWS::ApiGateway::RestApi'
     Properties:
       Name: 'MyApi'
       Description: 'API para interactuar con Lambda y DynamoDB'
+
+
