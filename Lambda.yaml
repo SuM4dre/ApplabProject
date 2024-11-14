@@ -19,7 +19,7 @@ Resources:
   LambdaFunctionsBucketPolicy:
     Type: 'AWS::S3::BucketPolicy'
     Properties:
-      Bucket: 'librosharinasysemillas'
+      Bucket: !Ref WebsiteBucketName
       PolicyDocument:
         Version: '2012-10-17'
         Statement:
@@ -27,7 +27,7 @@ Resources:
             Principal:
               AWS: !Sub "arn:aws:iam::${AWS::AccountId}:role/${LambdaExecutionRole}"
             Action: 's3:GetObject'
-            Resource: 'arn:aws:s3:::librosharinasysemillas/mylambdafunction.zip'
+            Resource: !Sub 'arn:aws:s3:::${WebsiteBucketName}/mylambdafunction.zip'
 
   # Lambda Execution Role
   LambdaExecutionRole:
@@ -60,7 +60,7 @@ Resources:
                 Resource: !Sub 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${DynamoDBName}'
               - Effect: Allow
                 Action: 's3:GetObject'
-                Resource: 'arn:aws:s3:::librosharinasysemillas/mylambdafunction.zip'
+                Resource: !Sub 'arn:aws:s3:::${WebsiteBucketName}/mylambdafunction.zip'
 
   # Lambda Function
   MyLambdaFunction:
@@ -70,8 +70,54 @@ Resources:
       Handler: 'index.handler'
       Role: !GetAtt LambdaExecutionRole.Arn
       Code:
-        S3Bucket: 'librosharinasysemillas'
+        S3Bucket: !Ref WebsiteBucketName
         S3Key: 'mylambdafunction.zip'
       Runtime: 'python3.12'
       Timeout: 15
       MemorySize: 128
+
+  # API Gateway
+  ApiGateway:
+    Type: 'AWS::ApiGateway::RestApi'
+    Properties:
+      Name: 'MyApi'
+      Description: 'API para interactuar con Lambda y DynamoDB'
+
+  # API Gateway Resource
+  ApiGatewayResource:
+    Type: 'AWS::ApiGateway::Resource'
+    Properties:
+      ParentId:
+        Fn::GetAtt:
+          - ApiGateway
+          - RootResourceId
+      PathPart: 'buscar'
+      RestApiId:
+        Ref: ApiGateway
+
+  # API Gateway Method
+  ApiGatewayMethod:
+    Type: 'AWS::ApiGateway::Method'
+    Properties:
+      AuthorizationType: NONE
+      HttpMethod: GET
+      ResourceId:
+        Ref: ApiGatewayResource
+      RestApiId:
+        Ref: ApiGateway
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri:
+          Fn::Sub:
+            - arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaArn}/invocations
+            - { LambdaArn: !GetAtt MyLambdaFunction.Arn }
+
+  # Lambda Invoke Permission for API Gateway
+  LambdaInvokePermission:
+    Type: 'AWS::Lambda::Permission'
+    Properties:
+      Action: 'lambda:InvokeFunction'
+      FunctionName: !Ref MyLambdaFunction
+      Principal: 'apigateway.amazonaws.com'
+

@@ -86,12 +86,6 @@ Resources:
             Cookies:
               Forward: none
         DefaultRootObject: index.html
-  
-  # API Gateway
-  ApiGateway:
-    Type: 'AWS::ApiGateway::RestApi'
-    Properties:
-      Name: 'MyApi'
-      Description: 'API para interactuar con Lambda y DynamoDB'
+
 
 
