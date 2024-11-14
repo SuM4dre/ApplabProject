@@ -1,3 +1,4 @@
+<!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
@@ -31,6 +32,14 @@
         button:hover {
             background-color: #e0e0e0;
         }
+        .results-container {
+            margin-top: 30px;
+            padding: 20px;
+            background-color: #3c3c3c;
+            border-radius: 5px;
+            text-align: left;
+            display: none;
+        }
     </style>
 </head>
 <body>
@@ -39,6 +48,10 @@
         <input type="text" id="search" placeholder="Buscar productos...">
         <button onclick="searchProduct()">Buscar</button>
     </div>
+    <div class="results-container" id="results">
+        <h2>Resultados de búsqueda:</h2>
+        <ul id="results-list"></ul>
+    </div>
 
     <script>
         function searchProduct() {
@@ -46,17 +59,33 @@
             console.log(`Buscando productos relacionados con: ${query}`);
 
             // Ejemplo de llamada a una API en AWS
-            fetch('https://tu-api-en-aws.com/buscar?query=' + query)
+            const apiUrl = 'https://zv4wvsbn18.execute-api.us-east-1.amazonaws.com/Test';
+            fetch(`${apiUrl}?query=${query}`)
                 .then(response => response.json())
                 .then(data => {
                     console.log(data);
-                    // Aquí puedes procesar y mostrar los resultados en tu página web
+                    displayResults(data);
                 })
                 .catch(error => console.error('Error:', error));
+        }
+
+        function displayResults(data) {
+            const resultsContainer = document.getElementById('results');
+            const resultsList = document.getElementById('results-list');
+            resultsList.innerHTML = '';
+
+            data.forEach(item => {
+                const listItem = document.createElement('li');
+                listItem.textContent = item.Nombre; // Ajusta esto según los datos devueltos por tu API
+                resultsList.appendChild(listItem);
+            });
+
+            resultsContainer.style.display = 'block';
         }
     </script>
 </body>
 </html>
+
 
 
 
