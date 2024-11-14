@@ -1,18 +1,16 @@
 AWSTemplateFormatVersion: '2010-09-09'
 
-Description:
-  Template to create the S3 bucket, CloudFront, DynamoDB, ApiGateway, and Lambda for the Application layer
+Description: >
+  Template to create DynamoDB table called Productos with ProductoID as the partition key.
 
-  Parameters:
-
+Parameters:
   DynamoDBName:
-    Description: "Nombre de la tabla DynamoDB para la tienda de libros"
+    Description: "Lista de precios"
     Type: String
-    Default: "Productos"
+    Default: "ProductosNuevos"
 
-  # DynamoDB Table
-  
-  ProductsTable:
+Resources:
+  ProductosTable:
     Type: 'AWS::DynamoDB::Table'
     Properties:
       TableName: !Ref DynamoDBName
@@ -26,5 +24,6 @@ Description:
         ReadCapacityUnits: 5
         WriteCapacityUnits: 5
       Tags:
-        - Key: "Name"
-          Value: !Ref 'ProductsTable'
+        - Key: Name
+          Value: !Ref DynamoDBName
+

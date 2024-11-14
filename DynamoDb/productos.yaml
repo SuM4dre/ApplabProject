@@ -1,0 +1,14 @@
+---
+productos:
+  - ProductoID: "P001"
+    Nombre: "Harina de Maíz"
+    Descripción: "Harina de maíz orgánica de alta calidad"
+    Precio: 2.99
+  - ProductoID: "P002"
+    Nombre: "Semillas de Chía"
+    Descripción: "Semillas de chía ricas en omega-3 y fibra"
+    Precio: 5.49
+  - ProductoID: "P003"
+    Nombre: "Aceite de Coco"
+    Descripción: "Aceite de coco extra virgen prensado en frío"
+    Precio: 10.99
