@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Harinas y Semillas el buen sabor</title>
+    <title>Harinas y Semillas El Buen Sabor</title>
     <style>
         body {
             background-color: #2fe60152;
@@ -43,7 +43,7 @@
     </style>
 </head>
 <body>
-    <h1>Harinas y Semillas el buen sabor</h1>
+    <h1>Harinas y Semillas El Buen Sabor</h1>
     <div class="search-container">
         <input type="text" id="search" placeholder="Buscar productos...">
         <button onclick="searchProduct()">Buscar</button>
@@ -57,8 +57,7 @@
         function searchProduct() {
             const query = document.getElementById('search').value;
             console.log(`Buscando productos relacionados con: ${query}`);
-
-            // Ejemplo de llamada a una API en AWS
+    
             const apiUrl = 'https://zv4wvsbn18.execute-api.us-east-1.amazonaws.com/Test';
             fetch(`${apiUrl}?query=${query}`)
                 .then(response => response.json())
@@ -68,23 +67,24 @@
                 })
                 .catch(error => console.error('Error:', error));
         }
-
+    
         function displayResults(data) {
             const resultsContainer = document.getElementById('results');
             const resultsList = document.getElementById('results-list');
             resultsList.innerHTML = '';
-
+    
             data.forEach(item => {
                 const listItem = document.createElement('li');
-                listItem.textContent = item.Nombre; // Ajusta esto según los datos devueltos por tu API
+                listItem.textContent = `Nombre: ${item.Nombre.S}, Descripción: ${item.Descripcion.S}, Precio: ${item.Precio.N} COP`;
                 resultsList.appendChild(listItem);
             });
-
+    
             resultsContainer.style.display = 'block';
         }
-    </script>
+    </script>  
 </body>
 </html>
+
 
 
 
