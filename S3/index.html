@@ -58,7 +58,7 @@
             const query = document.getElementById('search').value;
             console.log(`Buscando productos relacionados con: ${query}`);
     
-            const apiUrl = 'https://zv4wvsbn18.execute-api.us-east-1.amazonaws.com/Test';
+            const apiUrl = 'https://a3rizv9vhl.execute-api.us-east-1.amazonaws.com/Test';
             fetch(`${apiUrl}?query=${query}`)
                 .then(response => response.json())
                 .then(data => {

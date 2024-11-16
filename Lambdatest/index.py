@@ -1,6 +1,13 @@
 import json
 import boto3
 from boto3.dynamodb.conditions import Attr
+from decimal import Decimal
+
+class DecimalEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, Decimal):
+            return float(obj)
+        return super(DecimalEncoder, self).default(obj)
 
 def lambda_handler(event, context):
     # Verificar el método HTTP utilizado en la solicitud
@@ -30,7 +37,7 @@ def lambda_handler(event, context):
                 'Content-Type': 'application/json',
                 'Access-Control-Allow-Origin': '*'
             },
-            'body': json.dumps(resultados)
+            'body': json.dumps(resultados, cls=DecimalEncoder)
         }
 
     # Si la solicitud no coincide con el método y ruta esperados, devolver un error
@@ -42,3 +49,4 @@ def lambda_handler(event, context):
         },
         'body': json.dumps({'message': 'Solicitud no válida'})
     }
+
