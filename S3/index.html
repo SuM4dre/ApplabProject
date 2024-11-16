@@ -58,7 +58,7 @@
             const query = document.getElementById('search').value;
             console.log(`Buscando productos relacionados con: ${query}`);
     
-            const apiUrl = 'https://a3rizv9vhl.execute-api.us-east-1.amazonaws.com/Test';
+            const apiUrl = 'https://a3rizv9vhl.execute-api.us-east-1.amazonaws.com/Test/buscar';
             fetch(`${apiUrl}?query=${query}`)
                 .then(response => response.json())
                 .then(data => {
@@ -75,7 +75,7 @@
     
             data.forEach(item => {
                 const listItem = document.createElement('li');
-                listItem.textContent = `Nombre: ${item.Nombre.S}, Descripción: ${item.Descripcion.S}, Precio: ${item.Precio.N} COP`;
+                listItem.textContent = `Nombre: ${item.Nombre}, Descripción: ${item.Descripcion}, Precio: ${item.Precio} COP`;
                 resultsList.appendChild(listItem);
             });
     
